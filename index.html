@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Fluxer to Discord Template Converter</title>
+    <style>
+        :root {
+            --bg: #1e1f22;
+            --panel: #2b2d31;
+            --panel2: #313338;
+            --text: #dbdee1;
+            --muted: #949ba4;
+            --accent: #5865f2;
+            --accent-hover: #4752c4;
+            --ok: #3ba55d;
+            --err: #ed4245;
+            --border: #3f4147;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 24px;
+            line-height: 1.5;
+        }
+
+        .wrap {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: .85rem;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 18px;
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            margin: 0 0 12px 0;
+            color: var(--text);
+        }
+
+        label {
+            display: block;
+            font-size: .78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .02em;
+            color: var(--muted);
+            margin: 12px 0 4px;
+        }
+
+        label:first-child {
+            margin-top: 0;
+        }
+
+        input[type=text],
+        input[type=password],
+        textarea,
+        select {
+            width: 100%;
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            padding: 9px 10px;
+            font-size: .9rem;
+            font-family: inherit;
+        }
+
+        textarea {
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: .78rem;
+            resize: vertical;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .row>div {
+            flex: 1;
+        }
+
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 16px;
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            margin-right: 8px;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button.secondary {
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        button.secondary:hover {
+            background: #3a3c41;
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .msg {
+            font-size: .8rem;
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .msg.show {
+            display: block;
+        }
+
+        .msg.ok {
+            background: rgba(59, 165, 93, .12);
+            color: var(--ok);
+            border: 1px solid rgba(59, 165, 93, .35);
+        }
+
+        .msg.err {
+            background: rgba(237, 66, 69, .12);
+            color: var(--err);
+            border: 1px solid rgba(237, 66, 69, .35);
+        }
+
+        .note {
+            font-size: .75rem;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: .75rem;
+            margin: 18px 0;
+            text-transform: uppercase;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        #output {
+            min-height: 260px;
+        }
+
+        .toggle {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: .75rem;
+            cursor: pointer;
+            padding: 0;
+            margin: 4px 0 0;
+            text-decoration: underline;
+        }
+
+        .warn {
+            font-size: .75rem;
+            color: #f0b132;
+            background: rgba(240, 177, 50, .1);
+            border: 1px solid rgba(240, 177, 50, .35);
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .osrow {
+            display: flex;
+            gap: 16px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .osrow label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: none;
+            font-weight: 400;
+            font-size: .85rem;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .osrow input[type=radio] {
+            width: auto;
+        }
+
+        #cmdOut {
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: .78rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>Fluxer to Discord Template Converter</h1>
+        <div class="sub">Generate a terminal command that fetches a Fluxer server and copies the result to your clipboard, paste that into the box below, and it gets converted into Discord's real guild template. That you can use to paste into any website that imports Discord templates, including Fluxer itself. This is a Unofficial Conversion Tool. Use it at your own risk. Is not Approved by Fluxer Developers</div>
+
+        <div class="card">
+            <h2>1. Fill in your details</h2>
+            <div class="row">
+                <div>
+                    <label>API base URL</label>
+                    <input type="text" id="apiBase" value="https://api.fluxer.app/v1" placeholder="https://your-instance.example/api">
+                </div>
+                <div>
+                    <label>Community / Guild ID</label>
+                    <input type="text" id="guildId" placeholder="1234567898765432123">
+                </div>
+            </div>
+            <label>Token prefix (optional, e.g. "Bearer ")</label>
+            <input type="text" id="tokenPrefix" value="">
+            <label>User token</label>
+            <input type="password" id="token" placeholder="paste your token here">
+            <button class="toggle" id="toggleToken" type="button">show token</button>
+            <div class="note">The auth header is always sent as <code>Authorization</code>, matching Fluxer's API. since thats required lmao</div>
+        </div>
+
+        <div class="card">
+            <h2>2. Copy the command for your terminal</h2>
+            <label>Operating system</label>
+            <div class="osrow">
+                <label><input type="radio" name="os" value="windows" checked> Windows (PowerShell)</label>
+                <label><input type="radio" name="os" value="macos"> macOS</label>
+                <label><input type="radio" name="os" value="linux"> Linux</label>
+            </div>
+            <div id="linuxToolWrap" style="display:none;">
+                <label>Clipboard tool</label>
+                <select id="linuxTool">
+                    <option value="xclip">xclip (X11, most distros)</option>
+                    <option value="xsel">xsel (X11 alternative)</option>
+                    <option value="wl-copy">wl-copy (Wayland)</option>
+                </select>
+            </div>
+            <label>Command</label>
+            <textarea id="cmdOut" rows="4" readonly></textarea>
+            <button id="copyCmdBtn">Copy command</button>
+            <div class="msg" id="cmdMsg"></div>
+            <div class="note">
+                Paste this into your terminal (PowerShell on Windows, Terminal on macOS, your shell of choice on Linux) and run it.
+                The server JSON gets copied straight to your clipboard, then just paste it into the box below.
+                On Linux you'll need the chosen clipboard tool installed, for example <code>sudo apt install xclip</code>. And Fair Warning,
+                Fluxer only allows you to get JSON for what you have permissions to,
+                so any channels you do not visually have access to inside the server you are trying to convert will not exist in the converted version.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>3. Paste the fetched JSON</h2>
+            <label>Raw Fluxer guild export</label>
+            <textarea id="rawJson" rows="8" placeholder="paste the JSON from your clipboard here"></textarea>
+            <button id="convertBtn">Convert Pasted JSON</button>
+            <div class="msg" id="convertMsg"></div>
+        </div>
+
+        <div class="card">
+            <h2>4. Discord template output</h2>
+            <textarea id="output" rows="14" readonly placeholder="converted template JSON will appear here"></textarea>
+            <button id="copyBtn" class="secondary">Copy to clipboard</button>
+            <button id="downloadBtn" class="secondary">Download .json</button>
+            <div class="msg" id="outMsg"></div>
+            <div class="note">
+                Notes on the conversion: Fluxer's "link/shortcut" channels have no Discord equivalent, so they're
+                converted to plain text channels with the URL placed in the topic. You are WELCOMEEEE!!!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+
+        $('toggleToken').addEventListener('click', () => {
+            const t = $('token');
+            const showing = t.type === 'text';
+            t.type = showing ? 'password' : 'text';
+            $('toggleToken').textContent = showing ? 'show token' : 'hide token';
+        });
+
+        function showMsg(el, text, ok) {
+            el.textContent = text;
+            el.className = 'msg show ' + (ok ? 'ok' : 'err');
+        }
+
+        function escDouble(s) {
+            return s.replace(/"/g, '\\"');
+        }
+
+        function buildUrl() {
+            const base = $('apiBase').value.trim().replace(/\/+$/, '');
+            const id = $('guildId').value.trim();
+            return base && id ? `${base}/guilds/${id}` : '';
+        }
+
+        function buildCommand() {
+            const url = buildUrl();
+            const prefix = $('tokenPrefix').value;
+            const token = prefix + $('token').value;
+            const os = document.querySelector('input[name=os]:checked').value;
+
+            if (!url || !token) {
+                return 'Fill in the API base URL, guild ID, and token above first.';
+            }
+
+            if (os === 'windows') {
+                return `(Invoke-RestMethod -Uri "${escDouble(url)}" -Headers @{ Authorization = "${escDouble(token)}" } -Method Get) | ConvertTo-Json -Depth 20 | Set-Clipboard`;
+            }
+            if (os === 'macos') {
+                return `curl -s -H "Authorization: ${escDouble(token)}" "${escDouble(url)}" | pbcopy`;
+            }
+            const tool = $('linuxTool').value;
+            let pipeCmd = 'xclip -selection clipboard';
+            if (tool === 'xsel') pipeCmd = 'xsel --clipboard --input';
+            if (tool === 'wl-copy') pipeCmd = 'wl-copy';
+            return `curl -s -H "Authorization: ${escDouble(token)}" "${escDouble(url)}" | ${pipeCmd}`;
+        }
+
+        function refreshCommand() {
+            $('cmdOut').value = buildCommand();
+            const isLinux = document.querySelector('input[name=os]:checked').value === 'linux';
+            $('linuxToolWrap').style.display = isLinux ? 'block' : 'none';
+        }
+
+        ['apiBase', 'guildId', 'tokenPrefix', 'token'].forEach(id => {
+            $(id).addEventListener('input', refreshCommand);
+        });
+        document.querySelectorAll('input[name=os]').forEach(r => r.addEventListener('change', refreshCommand));
+        $('linuxTool').addEventListener('change', refreshCommand);
+        refreshCommand();
+
+        $('copyCmdBtn').addEventListener('click', async () => {
+            const cmd = $('cmdOut').value;
+            const msgEl = $('cmdMsg');
+            try {
+                await navigator.clipboard.writeText(cmd);
+                showMsg(msgEl, 'Command copied.', true);
+            } catch (e) {
+                const ta = $('cmdOut');
+                ta.select();
+                document.execCommand('copy');
+                showMsg(msgEl, 'Command copied.', true);
+            }
+        });
+
+        function maskLegacy(bigVal) {
+            return Number(bigVal & 0x7FFFFFFFn);
+        }
+
+        function toBig(v) {
+            if (v === null || v === undefined) return 0n;
+            return BigInt(v);
+        }
+
+        function convertGuildToTemplate(src) {
+            if (src && typeof src === 'object') {
+                if (src.guild && typeof src.guild === 'object') src = src.guild;
+                else if (src.data && typeof src.data === 'object' && src.data.roles) src = src.data;
+            }
+            if (!src || !Array.isArray(src.roles) || !Array.isArray(src.channels)) {
+                throw new Error('That JSON doesn\'t look like a guild object, missing "roles" and "channels" arrays.');
+            }
+
+            const rolesSorted = [...src.roles].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+            const roleIdMap = {};
+            const outRoles = rolesSorted.map((r, i) => {
+                roleIdMap[r.id] = i;
+                const permNew = toBig(r.permissions);
+                const permLegacy = maskLegacy(permNew);
+                return {
+                    id: i,
+                    name: r.name,
+                    permissions: permLegacy,
+                    permissions_new: permNew.toString(),
+                    color: r.color ?? 0,
+                    colors: {
+                        primary_color: r.color ?? 0,
+                        secondary_color: null,
+                        tertiary_color: null
+                    },
+                    hoist: !!r.hoist,
+                    mentionable: !!r.mentionable,
+                    icon: null,
+                    unicode_emoji: null
+                };
+            });
+
+            const chanIdMap = {};
+            src.channels.forEach((c, i) => {
+                chanIdMap[c.id] = i;
+            });
+
+            const outChannels = src.channels.map((c, i) => {
+                let ctype = c.type;
+                let topic = c.topic ?? null;
+                if (ctype === 998) {
+                    topic = c.url ?? topic;
+                    ctype = 0;
+                }
+
+                const overwrites = (c.permission_overwrites || [])
+                    .filter(ow => ow.type === 0 && Object.prototype.hasOwnProperty.call(roleIdMap, ow.id))
+                    .map(ow => {
+                        const allowNew = toBig(ow.allow);
+                        const denyNew = toBig(ow.deny);
+                        return {
+                            id: roleIdMap[ow.id],
+                            type: 'role',
+                            allow: maskLegacy(allowNew),
+                            deny: maskLegacy(denyNew),
+                            allow_new: allowNew.toString(),
+                            deny_new: denyNew.toString()
+                        };
+                    });
+
+                const parentLocal = (c.parent_id !== null && c.parent_id !== undefined && Object.prototype.hasOwnProperty.call(chanIdMap, c.parent_id)) ?
+                    chanIdMap[c.parent_id] : null;
+
+                return {
+                    id: i,
+                    type: ctype,
+                    name: c.name,
+                    position: c.position ?? 0,
+                    topic: topic,
+                    bitrate: c.bitrate ?? 64000,
+                    user_limit: c.user_limit ?? 0,
+                    nsfw: !!c.nsfw,
+                    rate_limit_per_user: c.rate_limit_per_user ?? 0,
+                    parent_id: parentLocal,
+                    default_auto_archive_duration: null,
+                    permission_overwrites: overwrites,
+                    available_tags: [],
+                    template: '',
+                    default_reaction_emoji: null,
+                    default_thread_rate_limit_per_user: null,
+                    default_sort_order: null,
+                    default_forum_layout: null,
+                    default_tag_setting: null,
+                    icon_emoji: null,
+                    theme_color: null
+                };
+            });
+
+            const afkChan = src.afk_channel_id;
+            const sysChan = src.system_channel_id;
+
+            const serialized_source_guild = {
+                name: src.name,
+                description: null,
+                region: null,
+                verification_level: src.verification_level ?? 0,
+                default_message_notifications: src.default_message_notifications ?? 0,
+                explicit_content_filter: src.explicit_content_filter ?? 0,
+                preferred_locale: 'en-US',
+                afk_channel_id: (afkChan && Object.prototype.hasOwnProperty.call(chanIdMap, afkChan)) ? chanIdMap[afkChan] : null,
+                afk_timeout: src.afk_timeout ?? 300,
+                system_channel_id: (sysChan && Object.prototype.hasOwnProperty.call(chanIdMap, sysChan)) ? chanIdMap[sysChan] : null,
+                system_channel_flags: src.system_channel_flags ?? 0,
+                roles: outRoles,
+                channels: outChannels
+            };
+
+            const now = new Date().toISOString().replace(/\.\d+Z$/, '+00:00');
+
+            return {
+                code: 'PLACEHOLDERBECAUSEWEDONTREALLYHAVEACODENOWDOWE',
+                name: src.name,
+                description: '',
+                usage_count: 0,
+                creator_id: src.owner_id ?? null,
+                creator: {
+                    id: src.owner_id ?? null,
+                    username: 'unknown',
+                    avatar: null,
+                    discriminator: '0',
+                    public_flags: 0,
+                    flags: 0,
+                    banner: null,
+                    accent_color: null,
+                    global_name: null,
+                    avatar_decoration_data: null,
+                    collectibles: null,
+                    display_name_styles: null,
+                    vad_colors: null,
+                    banner_color: null,
+                    clan: null,
+                    primary_guild: null
+                },
+                created_at: now,
+                updated_at: now,
+                source_guild_id: src.guild_id ?? src.id ?? null,
+                serialized_source_guild: serialized_source_guild,
+                is_dirty: null
+            };
+        }
+
+        function runConversion(rawText, msgEl) {
+            let parsed;
+            try {
+                parsed = JSON.parse(rawText);
+            } catch (e) {
+                showMsg(msgEl, 'Couldn\'t parse that as JSON: ' + e.message, false);
+                return;
+            }
+            try {
+                const template = convertGuildToTemplate(parsed);
+                $('output').value = JSON.stringify(template, null, 2);
+                showMsg(msgEl, 'Converted successfully.', true);
+            } catch (e) {
+                showMsg(msgEl, e.message, false);
+            }
+        }
+
+        $('convertBtn').addEventListener('click', () => {
+            const raw = $('rawJson').value.trim();
+            const msgEl = $('convertMsg');
+            if (!raw) {
+                showMsg(msgEl, 'Paste some guild JSON first.', false);
+                return;
+            }
+            runConversion(raw, msgEl);
+        });
+
+        $('copyBtn').addEventListener('click', async () => {
+            const out = $('output').value;
+            const msgEl = $('outMsg');
+            if (!out) {
+                showMsg(msgEl, 'Nothing to copy yet.', false);
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(out);
+                showMsg(msgEl, 'Copied to clipboard.', true);
+            } catch (e) {
+                const ta = $('output');
+                ta.select();
+                document.execCommand('copy');
+                showMsg(msgEl, 'Copied to clipboard.', true);
+            }
+        });
+
+        $('downloadBtn').addEventListener('click', () => {
+            const out = $('output').value;
+            const msgEl = $('outMsg');
+            if (!out) {
+                showMsg(msgEl, 'Nothing to download yet.', false);
+                return;
+            }
+            const blob = new Blob([out], {
+                type: 'application/json'
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'discord_template.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showMsg(msgEl, 'Download started.', true);
+        });
+    </script>
+</body>
+
+</html>
